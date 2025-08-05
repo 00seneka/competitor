@@ -99,7 +99,11 @@ function isValidEmail(email) {
 // Store email in MongoDB
 async function storeEmail(email) {
     try {
-        const response = await fetch('/api/waitlist', {
+        // Automatically detect the correct API endpoint
+        const baseUrl = window.location.origin;
+        const apiUrl = `${baseUrl}/api/waitlist`;
+        
+        const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
