@@ -12,7 +12,15 @@ const DATABASE_NAME = 'videoscale';
 const COLLECTION_NAME = 'waitlist';
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: [
+        'https://competitor-ruby.vercel.app',
+        'https://competitor-production.up.railway.app',
+        'http://localhost:3000',
+        'http://localhost:5000'
+    ],
+    credentials: true
+}));
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
