@@ -21,35 +21,46 @@ document.addEventListener('DOMContentLoaded', function() {
         submitButton.classList.add('loading');
         
         // Simulate API call (replace with your actual endpoint)
-        setTimeout(() => {
-            // Store email (you can replace this with actual API call)
-            storeEmail(email);
-            
-            // Hide form and show success message
-            form.style.display = 'none';
-            successMessage.style.display = 'block';
-            
-            // Trigger confetti
-            createConfetti();
-            
-            // Track success
-            trackEvent('waitlist_signup_success', {
-                email: email,
-                timestamp: new Date().toISOString()
-            });
-            
-            // Reset button state
-            submitButton.innerHTML = 'Join Waitlist';
-            submitButton.disabled = false;
-            submitButton.classList.remove('loading');
-            
-            // Scroll to success message
-            successMessage.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'center' 
-            });
-            
-        }, 2000);
+        setTimeout(async () => {
+            try {
+                // Store email in MongoDB
+                await storeEmail(email);
+                
+                // Hide form and show success message
+                form.style.display = 'none';
+                successMessage.style.display = 'block';
+                
+                // Trigger confetti
+                createConfetti();
+                
+                // Track success
+                trackEvent('waitlist_signup_success', {
+                    email: email,
+                    timestamp: new Date().toISOString()
+                });
+                
+                // Scroll to success message
+                successMessage.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center' 
+                });
+                
+            } catch (error) {
+                // Show error message if MongoDB storage fails
+                showError('Something went wrong. Please try again later.');
+                
+                // Track error
+                trackEvent('waitlist_signup_error', {
+                    error: error.message,
+                    timestamp: new Date().toISOString()
+                });
+            } finally {
+                // Reset button state
+                submitButton.innerHTML = 'Join Waitlist';
+                submitButton.disabled = false;
+                submitButton.classList.remove('loading');
+            }
+        }, 1000);
     });
 });
 
@@ -85,34 +96,42 @@ function isValidEmail(email) {
     return emailRegex.test(email) && email.length <= 254;
 }
 
-// Store email (replace with your backend integration)
-function storeEmail(email) {
-    // For now, just store in localStorage
-    const emails = JSON.parse(localStorage.getItem('waitlistEmails') || '[]');
-    emails.push({
-        email: email,
-        timestamp: new Date().toISOString()
-    });
-    localStorage.setItem('waitlistEmails', JSON.stringify(emails));
-    
-    // You can replace this with an actual API call to your backend
-    // Example:
-    /*
-    fetch('/api/waitlist', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: email })
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('Success:', data);
-    })
-    .catch((error) => {
-        console.error('Error:', error);
-    });
-    */
+// Store email in MongoDB
+async function storeEmail(email) {
+    try {
+        const response = await fetch('/api/waitlist', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                email: email,
+                timestamp: new Date().toISOString(),
+                source: 'landing_page'
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Email stored successfully:', data);
+        return data;
+    } catch (error) {
+        console.error('Error storing email:', error);
+        
+        // Fallback to localStorage if API fails
+        const emails = JSON.parse(localStorage.getItem('waitlistEmails') || '[]');
+        emails.push({
+            email: email,
+            timestamp: new Date().toISOString(),
+            status: 'offline_backup'
+        });
+        localStorage.setItem('waitlistEmails', JSON.stringify(emails));
+        
+        throw error; // Re-throw to handle in the calling function
+    }
 }
 
 // Enhanced error display
