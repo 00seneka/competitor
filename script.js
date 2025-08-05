@@ -99,9 +99,8 @@ function isValidEmail(email) {
 // Store email in MongoDB
 async function storeEmail(email) {
     try {
-        // Automatically detect the correct API endpoint
-        const baseUrl = window.location.origin;
-        const apiUrl = `${baseUrl}/api/waitlist`;
+        // Use Railway backend URL directly since frontend is on Vercel
+        const apiUrl = 'https://competitor-production.up.railway.app/api/waitlist';
         
         const response = await fetch(apiUrl, {
             method: 'POST',
